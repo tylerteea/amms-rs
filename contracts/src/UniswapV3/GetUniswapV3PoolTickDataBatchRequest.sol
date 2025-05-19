@@ -79,4 +79,32 @@ interface IUniswapV3PoolState {
     /// @notice Returns 256 packed tick initialized boolean values. See TickBitmap for more information
     function tickBitmap(int16 wordPosition) external view returns (uint256);
     function ticks(int24 tick) external view returns (Info memory);
+
+    // function ticks(int24 tick)
+    // external
+    // view
+    // returns (
+    //   uint128 liquidityTotal,
+    //   int128 liquidityDelta,
+    //   uint256 outerFeeGrowth0Token,
+    //   uint256 outerFeeGrowth1Token,
+    //   int56 outerTickCumulative,
+    //   uint160 outerSecondsPerLiquidity,
+    //   uint32 outerSecondsSpent,
+    //   bool initialized
+    // );
+
+    // info stored for each initialized individual tick
+    //   struct Tick {
+    //     uint128 liquidityTotal; // the total position liquidity that references this tick
+    //     int128 liquidityDelta; // amount of net liquidity added (subtracted) when tick is crossed left-right (right-left),
+    //     // fee growth per unit of liquidity on the _other_ side of this tick (relative to the current tick)
+    //     // only has relative meaning, not absolute — the value depends on when the tick is initialized
+    //     uint256 outerFeeGrowth0Token;
+    //     uint256 outerFeeGrowth1Token;
+    //     int56 outerTickCumulative; // the cumulative tick value on the other side of the tick
+    //     uint160 outerSecondsPerLiquidity; // the seconds per unit of liquidity on the _other_ side of current tick, (relative meaning)
+    //     uint32 outerSecondsSpent; // the seconds spent on the other side of the current tick, only has relative meaning
+    //     bool initialized; // these 8 bits are set to prevent fresh sstores when crossing newly initialized ticks
+    //   }
 }

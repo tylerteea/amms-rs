@@ -80,9 +80,23 @@ interface IUniswapV3PoolState {
             uint16 observationIndex,
             uint16 observationCardinality,
             uint16 observationCardinalityNext,
-            uint8 feeProtocol,
+            // TODO Hack pancake v3
+            uint32 feeProtocol,
             bool unlocked
         );
+    
+    // function globalState()
+    // external
+    // view
+    // returns (
+    //   uint160 price,
+    //   int24 tick,
+    //   uint16 fee,
+    //   uint16 timepointIndex,
+    //   uint16 communityFeeToken0,
+    //   uint16 communityFeeToken1,
+    //   bool unlocked
+    // );
 
     function liquidity() external view returns (uint128);
 }

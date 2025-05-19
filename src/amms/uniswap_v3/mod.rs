@@ -85,6 +85,27 @@ sol! {
         );
     }
 
+    #[derive(Debug, PartialEq, Eq)]
+    #[sol(rpc)]
+    contract IPancakeV3PoolEvents {
+        event Swap(
+            address indexed sender,
+            address indexed recipient,
+            int256 amount0,
+            int256 amount1,
+            uint160 sqrtPriceX96,
+            uint128 liquidity,
+            int24 tick,
+            uint128 protocolFeesToken0,
+            uint128 protocolFeesToken1
+        );
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    #[sol(rpc)]
+    contract IAlgebraPoolEvents {
+        event Fee(uint16 fee);
+    }
 
     #[derive(Debug, PartialEq, Eq)]
     #[sol(rpc)]
@@ -195,6 +216,8 @@ impl AutomatedMarketMaker for UniswapV3Pool {
             IUniswapV3PoolEvents::Mint::SIGNATURE_HASH,
             IUniswapV3PoolEvents::Burn::SIGNATURE_HASH,
             IUniswapV3PoolEvents::Swap::SIGNATURE_HASH,
+            IPancakeV3PoolEvents::Swap::SIGNATURE_HASH,
+            IAlgebraPoolEvents::Fee::SIGNATURE_HASH,
         ]
     }
 
@@ -215,6 +238,34 @@ impl AutomatedMarketMaker for UniswapV3Pool {
                     liquidity = ?self.liquidity,
                     tick = ?self.tick,
                     "Swap"
+                );
+            }
+            IPancakeV3PoolEvents::Swap::SIGNATURE_HASH => {
+                let swap_event = IPancakeV3PoolEvents::Swap::decode_log(log.as_ref())?;
+
+                self.sqrt_price = swap_event.sqrtPriceX96.to();
+                self.liquidity = swap_event.liquidity;
+                self.tick = swap_event.tick.unchecked_into();
+
+                info!(
+                    target = "amms::pancake_v3::sync",
+                    address = ?self.address,
+                    sqrt_price = ?self.sqrt_price,
+                    liquidity = ?self.liquidity,
+                    tick = ?self.tick,
+                    "Swap"
+                );
+            }
+            IAlgebraPoolEvents::Fee::SIGNATURE_HASH => {
+                let swap_event = IAlgebraPoolEvents::Fee::decode_log(log.as_ref())?;
+
+                self.fee = swap_event.fee.into();
+
+                info!(
+                    target = "amms::algebra::sync",
+                    address = ?self.address,
+                    fee = ?self.fee,
+                    "Fee"
                 );
             }
             IUniswapV3PoolEvents::Mint::SIGNATURE_HASH => {
@@ -588,6 +639,7 @@ impl AutomatedMarketMaker for UniswapV3Pool {
 
         // Get pool data
         self.tick_spacing = pool.tickSpacing().call().await?.as_i32();
+        // 验证是否会报错，兼容algebra
         self.fee = pool.fee().call().await?.to::<u32>();
 
         // Get tokens

@@ -22,13 +22,33 @@ contract GetUniswapV3PoolTickBitmapBatchRequest {
 
         for (uint256 i = 0; i < allPoolInfo.length; ++i) {
             TickBitmapInfo memory info = allPoolInfo[i];
-            IUniswapV3PoolState pool = IUniswapV3PoolState(info.pool);
+            // IUniswapV3PoolState pool = IUniswapV3PoolState(info.pool);
 
             uint256[] memory tickBitmaps = new uint256[](uint16(info.maxWord - info.minWord) + 1);
 
             uint256 wordIdx = 0;
             for (int16 j = info.minWord; j <= info.maxWord; ++j) {
-                uint256 tickBitmap = pool.tickBitmap(j);
+
+                uint256 tickBitmap = 0;
+
+                // try call tickBitmap
+                (bool success, bytes memory data) = info.pool.staticcall(
+                    abi.encodeWithSelector(bytes4(keccak256("tickBitmap(int16)")), j)
+                );
+                
+                if (success) {
+                    tickBitmap = abi.decode(data, (uint256));
+                } else {
+                    // try call tickTable
+                    (success, data) = info.pool.staticcall(
+                        abi.encodeWithSelector(bytes4(keccak256("tickTable(int16)")), j)
+                    );
+                    if (success) {
+                        tickBitmap = abi.decode(data, (uint256));
+                    }
+                }
+
+                // tickBitmap = pool.tickBitmap(j);
 
                 if (tickBitmap == 0) {
                     continue;
@@ -67,5 +87,6 @@ contract GetUniswapV3PoolTickBitmapBatchRequest {
 interface IUniswapV3PoolState {
     /// @notice Returns 256 packed tick initialized boolean values. See TickBitmap for more information
     function tickBitmap(int16 wordPosition) external view returns (uint256);
+    function tickTable(int16 wordPosition) external view returns (uint256);
     function tickSpacing() external view returns (int24);
 }
