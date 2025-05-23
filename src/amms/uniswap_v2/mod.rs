@@ -51,7 +51,21 @@ contract IUniswapV2Pair {
     function token1() external view returns (address);
     function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data);
     function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
-});
+}
+
+#[derive(Debug, PartialEq, Eq)]
+#[sol(rpc)]
+contract IUniswapV2PairSync256 {
+    event Sync(uint256 reserve0, uint256 reserve1);
+}
+
+#[derive(Debug, PartialEq, Eq)]
+#[sol(rpc)]
+contract IUniswapV2PairSync1123 {
+    event Sync(uint112 reserve0, uint112 reserve1, uint256 totalSupply);
+}
+
+);
 
 sol!(
     #[allow(missing_docs)]
@@ -91,16 +105,36 @@ impl AutomatedMarketMaker for UniswapV2Pool {
     }
 
     fn sync_events(&self) -> Vec<B256> {
-        vec![IUniswapV2Pair::Sync::SIGNATURE_HASH]
+        vec![IUniswapV2Pair::Sync::SIGNATURE_HASH, IUniswapV2PairSync256::Sync::SIGNATURE_HASH, IUniswapV2PairSync1123::Sync::SIGNATURE_HASH]
     }
 
     fn sync(&mut self, log: &Log) -> Result<(), AMMError> {
-        let sync_event = IUniswapV2Pair::Sync::decode_log(&log.inner)?;
+        let event_signature = log.topics()[0];
 
-        let (reserve_0, reserve_1) = (
-            sync_event.reserve0.to::<u128>(),
-            sync_event.reserve1.to::<u128>(),
-        );
+        let (reserve_0, reserve_1) = match event_signature {
+            IUniswapV2Pair::Sync::SIGNATURE_HASH => {
+                let sync_event = IUniswapV2Pair::Sync::decode_log(&log.inner)?;
+                (
+                    sync_event.reserve0.to::<u128>(),
+                    sync_event.reserve1.to::<u128>(),
+                )
+            }
+            IUniswapV2PairSync256::Sync::SIGNATURE_HASH => {
+                let sync_event =IUniswapV2PairSync256::Sync::decode_log(&log.inner)?;
+                (
+                    sync_event.reserve0.to::<u128>(),
+                    sync_event.reserve1.to::<u128>(),
+                )
+            }
+            IUniswapV2PairSync1123::Sync::SIGNATURE_HASH => {
+                let sync_event =IUniswapV2PairSync1123::Sync::decode_log(&log.inner)?;
+                (
+                    sync_event.reserve0.to::<u128>(),
+                    sync_event.reserve1.to::<u128>(),
+                )
+            }
+            _ => return Err(AMMError::UnrecognizedEventSignature(event_signature)),
+        };
 
         info!(
             target = "amm::uniswap_v2::sync",
