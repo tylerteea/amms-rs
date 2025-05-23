@@ -298,6 +298,8 @@ impl AutomatedMarketMaker for UniswapV3Pool {
                     mint_event.amount as i128,
                 )?;
 
+                self.validate_ticks()?;
+
                 info!(
                     target = "amms::uniswap_v3::sync",
                     address = ?self.address,
@@ -315,6 +317,8 @@ impl AutomatedMarketMaker for UniswapV3Pool {
                     burn_event.tickUpper.unchecked_into(),
                     -(burn_event.amount as i128),
                 )?;
+
+                self.validate_ticks()?;
 
                 info!(
                     target = "amms::uniswap_v3::sync",
