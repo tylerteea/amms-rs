@@ -105,7 +105,11 @@ impl AutomatedMarketMaker for UniswapV2Pool {
     }
 
     fn sync_events(&self) -> Vec<B256> {
-        vec![IUniswapV2Pair::Sync::SIGNATURE_HASH, IUniswapV2PairSync256::Sync::SIGNATURE_HASH, IUniswapV2PairSync1123::Sync::SIGNATURE_HASH]
+        vec![
+            IUniswapV2Pair::Sync::SIGNATURE_HASH,
+            IUniswapV2PairSync256::Sync::SIGNATURE_HASH,
+            IUniswapV2PairSync1123::Sync::SIGNATURE_HASH,
+        ]
     }
 
     fn sync(&mut self, log: &Log) -> Result<(), AMMError> {
@@ -120,14 +124,14 @@ impl AutomatedMarketMaker for UniswapV2Pool {
                 )
             }
             IUniswapV2PairSync256::Sync::SIGNATURE_HASH => {
-                let sync_event =IUniswapV2PairSync256::Sync::decode_log(&log.inner)?;
+                let sync_event = IUniswapV2PairSync256::Sync::decode_log(&log.inner)?;
                 (
                     sync_event.reserve0.to::<u128>(),
                     sync_event.reserve1.to::<u128>(),
                 )
             }
             IUniswapV2PairSync1123::Sync::SIGNATURE_HASH => {
-                let sync_event =IUniswapV2PairSync1123::Sync::decode_log(&log.inner)?;
+                let sync_event = IUniswapV2PairSync1123::Sync::decode_log(&log.inner)?;
                 (
                     sync_event.reserve0.to::<u128>(),
                     sync_event.reserve1.to::<u128>(),
@@ -224,7 +228,11 @@ impl AutomatedMarketMaker for UniswapV2Pool {
             <Vec<(Address, Address, u128, u128, u32, u32)> as SolValue>::abi_decode(&res)?[0];
 
         if pool_data.0.is_zero() {
-            todo!("Return error");
+            todo!(
+                "Return error address={:?} pool_data={:?}",
+                self.address(),
+                pool_data
+            );
         }
 
         self.token_a = Token::new_with_decimals(pool_data.0, pool_data.4 as u8);
