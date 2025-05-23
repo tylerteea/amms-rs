@@ -17,6 +17,7 @@ use alloy::{
     sol_types::{SolCall, SolEvent, SolValue},
     transports::BoxFuture,
 };
+use core::error;
 use futures::{stream::FuturesUnordered, StreamExt};
 use rayon::iter::{IntoParallelRefIterator, ParallelDrainRange, ParallelIterator};
 use serde::{Deserialize, Serialize};
@@ -28,7 +29,7 @@ use std::{
     str::FromStr,
 };
 use thiserror::Error;
-use tracing::info;
+use tracing::{error, info};
 use uniswap_v3_math::error::UniswapV3MathError;
 use uniswap_v3_math::tick_math::{MAX_SQRT_RATIO, MAX_TICK, MIN_SQRT_RATIO, MIN_TICK};
 use GetUniswapV3PoolTickDataBatchRequest::TickDataInfo;
@@ -161,6 +162,8 @@ pub enum UniswapV3Error {
     UniswapV3MathError(#[from] UniswapV3MathError),
     #[error("Liquidity Underflow")]
     LiquidityUnderflow,
+    #[error("Liquidity Sum Not Zero")]
+    LiquiditySumNotZero,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -680,6 +683,8 @@ impl AutomatedMarketMaker for UniswapV3Pool {
             unreachable!()
         };
 
+        pool.validate_ticks()?;
+
         Ok(pool)
     }
 }
@@ -690,6 +695,20 @@ impl UniswapV3Pool {
         Self {
             address,
             ..Default::default()
+        }
+    }
+
+    fn validate_ticks(&self) -> Result<i128, AMMError> {
+        let sum = self
+            .ticks
+            .iter()
+            .map(|(_, info)| info.liquidity_net)
+            .sum::<i128>();
+        if sum != 0 {
+            error!("Liquidity sum not zero");
+            Err(AMMError::from(UniswapV3Error::LiquidityUnderflow))
+        } else {
+            Ok(sum)
         }
     }
 
