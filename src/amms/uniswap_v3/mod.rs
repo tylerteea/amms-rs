@@ -714,8 +714,20 @@ impl UniswapV3Pool {
             })
             .sum::<i128>();
         if sum != 0 {
-            error!(address=%self.address, "Liquidity sum not zero");
-            info!(ticks = ?self.ticks);
+            error!(address=%self.address, ?sum, "Liquidity sum not zero");
+
+            let ticks: String = self
+                .ticks
+                .iter()
+                .map(|(tick, info)| {
+                    format!(
+                        "{}, {}, {}, {} \n",
+                        tick, info.liquidity_gross, info.liquidity_net, info.initialized
+                    )
+                })
+                .collect();
+            error!(%ticks, "Ticks");
+
             Err(AMMError::from(UniswapV3Error::LiquiditySumNotZero))
         } else {
             Ok(sum)
