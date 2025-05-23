@@ -17,7 +17,6 @@ use alloy::{
     sol_types::{SolCall, SolEvent, SolValue},
     transports::BoxFuture,
 };
-use core::error;
 use futures::{stream::FuturesUnordered, StreamExt};
 use rayon::iter::{IntoParallelRefIterator, ParallelDrainRange, ParallelIterator};
 use serde::{Deserialize, Serialize};
@@ -706,11 +705,18 @@ impl UniswapV3Pool {
         let sum = self
             .ticks
             .iter()
-            .map(|(_, info)| info.liquidity_net)
+            .map(|(_, info)| {
+                if info.initialized {
+                    info.liquidity_net
+                } else {
+                    0_i128
+                }
+            })
             .sum::<i128>();
         if sum != 0 {
-            error!("Liquidity sum not zero");
-            Err(AMMError::from(UniswapV3Error::LiquidityUnderflow))
+            error!(address=%self.address, "Liquidity sum not zero");
+            info!(ticks = ?self.ticks);
+            Err(AMMError::from(UniswapV3Error::LiquiditySumNotZero))
         } else {
             Ok(sum)
         }
