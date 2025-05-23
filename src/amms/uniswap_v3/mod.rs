@@ -716,17 +716,19 @@ impl UniswapV3Pool {
         if sum != 0 {
             error!(address=%self.address, ?sum, "Liquidity sum not zero");
 
-            let ticks: String = self
-                .ticks
-                .iter()
-                .map(|(tick, info)| {
-                    format!(
-                        "{}, {}, {}, {} \n",
-                        tick, info.liquidity_gross, info.liquidity_net, info.initialized
-                    )
-                })
-                .collect();
-            error!(%ticks, "Ticks");
+            if self.ticks.len() < 50 {
+                let ticks: String = self
+                    .ticks
+                    .iter()
+                    .map(|(tick, info)| {
+                        format!(
+                            "{}, {}, {}, {} \n",
+                            tick, info.liquidity_gross, info.liquidity_net, info.initialized
+                        )
+                    })
+                    .collect();
+                error!(address=%self.address, ?sum, %ticks, "Ticks");
+            }
 
             Err(AMMError::from(UniswapV3Error::LiquiditySumNotZero))
         } else {
