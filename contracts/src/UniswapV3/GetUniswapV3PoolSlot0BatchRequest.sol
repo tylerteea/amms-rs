@@ -22,7 +22,16 @@ contract GetUniswapV3PoolSlot0BatchRequest {
             IUniswapV3PoolState pool = IUniswapV3PoolState(poolAddress);
             slot0Data.liquidity = pool.liquidity();
 
-            (slot0Data.sqrtPrice, slot0Data.tick, , , , , ) = pool.slot0();
+            (bool success, bytes memory data) = poolAddress.staticcall(
+                abi.encodeWithSelector(bytes4(keccak256("slot0()")))
+            );
+            if (!success) {
+                (success, data) = poolAddress.staticcall(
+                    abi.encodeWithSelector(bytes4(keccak256("globalState()")))
+                );
+            }
+            
+            (slot0Data.sqrtPrice, slot0Data.tick, , , , , ) = abi.decode(data, (uint256,int24,uint16,uint16,uint16,uint32,bool));
 
             allSlot0Data[i] = slot0Data;
         }
@@ -84,7 +93,7 @@ interface IUniswapV3PoolState {
             uint32 feeProtocol,
             bool unlocked
         );
-    
+
     // function globalState()
     // external
     // view

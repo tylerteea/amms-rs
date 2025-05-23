@@ -22,3 +22,4 @@ contracts/src/flattened/
 
 # intellij 
 *.idea/
+.vscode

@@ -115,7 +115,25 @@ sol! {
         function fee() external view returns (uint24);
         function token0() external view returns (address);
         function token1() external view returns (address);
-
+        function globalState() external view returns (
+            uint160 price,
+            int24 tick,
+            uint16 fee,
+            uint16 timepointIndex,
+            uint16 communityFeeToken0,
+            uint16 communityFeeToken1,
+            bool unlocked
+        );
+        function slot0() external view returns (
+            uint160 sqrtPriceX96,
+            int24 tick,
+            uint16 observationIndex,
+            uint16 observationCardinality,
+            uint16 observationCardinalityNext,
+            // TODO Hack pancake v3
+            uint32 feeProtocol,
+            bool unlocked
+        );
     }
 }
 
@@ -639,9 +657,15 @@ impl AutomatedMarketMaker for UniswapV3Pool {
 
         // Get pool data
         self.tick_spacing = pool.tickSpacing().call().await?.as_i32();
-        // 验证是否会报错，兼容algebra
-        self.fee = pool.fee().call().await?.to::<u32>();
-
+        // 验证是否会报错，兼容 algebra
+        match pool.fee().call().await {
+            Ok(fee) => {
+                self.fee = fee.to::<u32>();
+            }
+            Err(_) => {
+                self.fee = pool.globalState().call().await?.fee as u32;
+            }
+        };
         // Get tokens
         self.token_a = Token::new(pool.token0().call().await?, provider.clone()).await?;
         self.token_b = Token::new(pool.token1().call().await?, provider.clone()).await?;
