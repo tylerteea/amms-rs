@@ -1053,7 +1053,7 @@ impl UniswapV3Factory {
             };
 
             let mut min_word = tick_to_word(MIN_TICK, uniswap_v3_pool.tick_spacing);
-            let max_word = tick_to_word(MAX_TICK, uniswap_v3_pool.tick_spacing);
+            let max_word = tick_to_word(MAX_TICK, uniswap_v3_pool.tick_spacing) + 1;
             let mut word_range = max_word - min_word;
 
             while word_range > 0 {
@@ -1155,7 +1155,7 @@ impl UniswapV3Factory {
             .filter_map(|pool| {
                 if let AMM::UniswapV3Pool(uniswap_v3_pool) = pool {
                     let min_word = tick_to_word(MIN_TICK, uniswap_v3_pool.tick_spacing);
-                    let max_word = tick_to_word(MAX_TICK, uniswap_v3_pool.tick_spacing);
+                    let max_word = tick_to_word(MAX_TICK, uniswap_v3_pool.tick_spacing) + 1;
 
                     let initialized_ticks: Vec<Signed<24, 1>> = (min_word..=max_word)
                         // Filter out empty bitmaps
