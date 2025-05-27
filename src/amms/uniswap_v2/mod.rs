@@ -87,6 +87,8 @@ pub enum UniswapV2Error {
     DivisionByZero,
     #[error("Rounding Error")]
     RoundingError,
+    #[error("Fetch Data Failed Error")]
+    FetchDataError,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -228,11 +230,12 @@ impl AutomatedMarketMaker for UniswapV2Pool {
             <Vec<(Address, Address, u128, u128, u32, u32)> as SolValue>::abi_decode(&res)?[0];
 
         if pool_data.0.is_zero() {
-            todo!(
-                "Return error address={:?} pool_data={:?}",
-                self.address(),
-                pool_data
-            );
+            return Err(AMMError::from(UniswapV2Error::FetchDataError));
+            // todo!(
+            //     "Return error address={:?} pool_data={:?}",
+            //     self.address(),
+            //     pool_data
+            // );
         }
 
         self.token_a = Token::new_with_decimals(pool_data.0, pool_data.4 as u8);
